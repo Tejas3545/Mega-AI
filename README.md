@@ -64,6 +64,20 @@ pip install -r requirements.txt
 pytest -q
 ```
 
+## Architecture Diagram
+The system consists of three containerized components communicating via Docker network:
+
+![Mega AI System Architecture](docs/architecture.png)
+
+**Data Flow:**
+1. Frontend captures video frames from camera
+2. POST `/api/v1/stream/frame` sends frames to backend
+3. Backend processes frames using MediaPipe face detection + Pillow drawing
+4. Detected ROI rectangles cached in memory & stored in PostgreSQL
+5. GET `/api/v1/stream/{id}/video` streams MJPEG back to frontend
+6. GET `/api/v1/stream/{id}/rois` returns JSON ROI records
+7. WebSocket provides real-time frame streaming alternative
+
 ## Security Fundamentals Implemented
 - Input validation for frame content type and empty payload
 - CORS restriction via environment configuration
@@ -77,6 +91,3 @@ AI assistance was used for:
 - README and documentation polishing
 
 All generated code was manually reviewed and adjusted for correctness, assignment constraints, and production readiness.
-
-## Architecture Diagram
-See [docs/architecture.png](docs/architecture.png)

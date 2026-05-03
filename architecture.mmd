@@ -1,0 +1,64 @@
+graph TB
+    subgraph Frontend["🖥️ FRONTEND CONTAINER"]
+        FE["React + Vite<br/>Port 5173<br/><br/>- Camera capture<br/>- Video display<br/>- ROI table"]
+    end
+
+    subgraph Backend["⚙️ BACKEND CONTAINER"]
+        subgraph Routes["API Routes"]
+            R1["POST /api/v1/stream/frame"]
+            R2["GET /api/v1/stream/id/video"]
+            R3["GET /api/v1/stream/id/rois"]
+            R4["WS /api/v1/ws/stream/id"]
+        end
+        
+        subgraph Processing["Face Processing"]
+            MP["MediaPipe Detection<br/>(no OpenCV)"]
+            PIL["Pillow Draw ROI<br/>(Green rectangle)"]
+        end
+        
+        Cache["Stream State Cache<br/>(In-Memory)"]
+    end
+
+    subgraph Database["🗄️ DATABASE CONTAINER"]
+        PG["PostgreSQL 16<br/>Port 5432"]
+        
+        subgraph Schema["Database Schema"]
+            T1["video_streams<br/>(id, created_at)"]
+            T2["face_rois<br/>(id, stream_id, x, y,<br/>width, height, confidence,<br/>timestamp_ms, created_at)"]
+        end
+    end
+
+    FE -->|1. POST frame<br/>multipart/form-data| R1
+    R1 -->|2. Process frame| MP
+    MP -->|3. Extract face coords| PIL
+    PIL -->|4. Draw rectangle| Cache
+    
+    R2 -->|5. Get latest frame| Cache
+    R2 -->|MJPEG stream| FE
+    
+    R3 -->|6. Query ROI data| PG
+    PG -->|ROI records| R3
+    R3 -->|JSON response| FE
+    
+    R4 -->|WebSocket| FE
+    
+    R1 -->|7. Save ROI| PG
+    T1 -.->|Foreign Key| T2
+
+    style Frontend fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style Backend fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style Database fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px
+    style FE fill:#bbdefb,stroke:#1976d2,stroke-width:2px
+    style Routes fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+    style Processing fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+    style Cache fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+    style PG fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px
+    style Schema fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px
+    style R1 fill:#fff9c4,stroke:#f57f17
+    style R2 fill:#fff9c4,stroke:#f57f17
+    style R3 fill:#fff9c4,stroke:#f57f17
+    style R4 fill:#fff9c4,stroke:#f57f17
+    style MP fill:#c8e6c9,stroke:#388e3c
+    style PIL fill:#c8e6c9,stroke:#388e3c
+    style T1 fill:#e0e0e0,stroke:#424242
+    style T2 fill:#e0e0e0,stroke:#424242
